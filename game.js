@@ -90,7 +90,7 @@ var Starfield = function(speed,opacity,numStars,clear) {
 
   // If the clear option is set, 
   // make the background black instead of transparent
-  if(clear) {
+  if(true) {
     starCtx.fillStyle = "#000";
     starCtx.fillRect(0,0,stars.width,stars.height);
   }
@@ -99,12 +99,14 @@ var Starfield = function(speed,opacity,numStars,clear) {
   // rectangles onto the offscreen canvas
   starCtx.fillStyle = "#FFF";
   starCtx.globalAlpha = opacity;
+  /*
   for(var i=0;i<numStars;i++) {
     starCtx.fillRect(Math.floor(Math.random()*stars.width),
                      Math.floor(Math.random()*stars.height),
                      2,
                      2);
   }
+  */
 
   // This method is called every frame
   // to draw the starfield onto the canvas

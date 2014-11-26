@@ -1,21 +1,311 @@
 <!DOCTYPE HTML>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8"/>
-  <title>Alien Invasion</title>
-  <link rel="stylesheet" href="base.css" type="text/css" />
-  <link href='http://fonts.googleapis.com/css?family=Bangers' rel='stylesheet' type='text/css'>
-  <meta name="viewport" content="width=device-width, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0"/>
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta charset="UTF-8" />
+    <title>Alien Invasion</title>
+    <link rel="stylesheet" href="base.css" type="text/css" />
+    <link href='http://fonts.googleapis.com/css?family=Bangers' rel='stylesheet' type='text/css'>
+    <meta name="viewport" content="width=device-width, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <style type="text/css">
+      img#dynamize { 
+        cursor: pointer; 
+        cursor: hand; 
+        position: relative;
+        left: 320px;
+        top : -420px;
+      }
+    </style>
 </head>
+
 <body>
-  <div id='container'>
-    <canvas id='game' width='320' height='480'></canvas>
-  </div>
-  <script src='engine.js'></script>
-  <script src='game.js'></script>
+    <div id='container'>
+        <img id="dynamize" src="images/dynamix.png"/>
+        <canvas id='game' width='320' height='480'></canvas>
+    </div>
+    <div id="dialog-div"> </div>
+
+    <script src='engine.js'></script>
+    <script src='game.js'></script>
+
+    <!-- Crypto JS Libraries for Encryption and Base64 Encoding-->
+    <script type="text/javascript" src="qrcode.min.js"></script>
+    <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/components/core-min.js"></script>
+    <script type="text/javascript" src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/sha512.js"></script>
+    <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/components/enc-base64-min.js"></script>
+
+    <!-- JQuery Libraries for Displaying the Dialog with QR Code -->
+    <script type="text/javascript" src="jquery.min.js"></script>
+    <script src="//code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css">
+
+    <!-- Ambient Dynamix JavaScript -->
+    <script type="text/javascript" src="dynamix/dynamix.js"></script>
+    <!-- Ambient Dynamix Security JavaScript -->
+    <script type="text/javascript" src="dynamix/dynamixAuth.js"></script>
+    <script type="text/javascript">
+        $("#dynamize").click(function() {
+            var numOfBindTries = 2;
+            var dynamixContextHandler;
+
+            var enableControlsPlugin = function() {
+                var controlsCallback = function(status, result) {
+                    switch (status) {
+                        case Dynamix.Enums.SUCCESS:
+                            break;
+                        case Dynamix.Enums.FAILURE:
+                            break;
+                        case Dynamix.Enums.INSTALL_PROGRESS:
+                            break;
+                        case Dynamix.Enums.WARNING:
+                            break;
+                    }
+
+                };
+                var controlsListener = function(status, result) {
+                    switch (status) {
+                        case Dynamix.Enums.PLUGIN_RESULT:
+                            if (result.keyCode == "32") {
+                                if (result.keypressType == "KEY_DOWN") {
+                                    dispatchKeyEvent("keydown", 32);
+                                } else if (result.keypressType == "KEY_UP") {
+                                    dispatchKeyEvent("keyup", 32);
+                                }
+                            } else if (result.keyCode == "37") {
+                                if (result.keypressType == "KEY_DOWN") {
+                                    dispatchKeyEvent("keydown", 37);
+                                } else if (result.keypressType == "KEY_UP") {
+                                    dispatchKeyEvent("keydown", 37);
+                                }
+                            } else if (result.keyCode == "39") {
+                                if (result.keypressType == "KEY_DOWN") {
+                                    dispatchKeyEvent("keydown", 39);
+                                } else if (result.keypressType == "KEY_UP") {
+                                    dispatchKeyEvent("keydown", 39);
+                                }
+                            }
+                            break;
+                    }
+                };
+
+                /*
+                commands = {};
+                commands.REQUESTED_COMMANDS = ["SENSOR_KEYPRESS"];
+                */
+                dynamixContextHandler.addContextSupport("org.ambientdynamix.contextplugins.ambientcontrol.controlmessage",
+                    "org.ambientdynamix.contextplugins.gamepadfeature", {
+                        "callback": controlsCallback,
+                        "listener": controlsListener
+                    });
+            };
+
+            var createContextHandler = function() {
+                var createNewHandlerCallback = function(status, handler) {
+                    switch (status) {
+                        case Dynamix.Enums.SUCCESS:
+                            dynamixContextHandler = handler;
+                            console.log("createNewHandlerCallback >> Fired " + dynamixContextHandler.id);
+                            enableControlsPlugin();
+                            break;
+                    }
+                };
+                Dynamix.createContextHandler(createNewHandlerCallback);
+                console.log("Dynamix.createContextHandler(createNewHandlerCallback)");
+            };
+
+            var openDynamixSession = function() {
+                var openSessionCallback = function(status) {
+                    console.log("OpenSessionCallback >> Fired");
+                    switch (status) {
+                        case Dynamix.Enums.SUCCESS:
+                            createContextHandler();
+                    }
+                };
+
+                /**
+                The session listener gets updates when
+                1. Session state changes
+                2. Plugins are enabled / disabled
+                **/
+                var sessionListener = function(status, result) {
+                    switch (status) {
+                        case Dynamix.Enums.SESSION_OPENED:
+                            console.log("session listener >>> " + status + " : " + result);
+                            createContextHandler();
+                            break;
+                        case Dynamix.Enums.SESSION_CLOSED:
+                            document.getElementById("dynamixConnected").checked = false;
+                            break;
+                    }
+                };
+                Dynamix.openDynamixSession({
+                    listener: sessionListener,
+                    callback: openSessionCallback
+                });
+                console.log("Dynamix.openDynamixSession();");
+            };
+
+
+            var successCallback = function() {
+                console.log("Executing QR Code Success Callback");
+                var bindListener = function(status) {
+                    switch (status) {
+                        case Dynamix.Enums.BOUND:
+                            console.log("bind listener status >> " + status);
+                            $("#dialog-div").dialog("close");
+                            openDynamixSession();
+                            break;
+                        case Dynamix.Enums.BIND_ERROR:
+                            console.log("bind listener status >> " + status);
+                            if (numOfBindTries > 0) {
+                                numOfBindTries--;
+                                Dynamix.bind(bindListener);
+                            }
+                            break;
+                        case Dynamix.Enums.UNBOUND:
+                            console.log("bind listener status >> " + status);
+                            break;
+                    }
+                }
+                Dynamix.bind(bindListener);
+            };
+            DynamixAuth.showQRCode("Alien Invasion", "dialog-div", successCallback);
+        });
+
+
+        function dispatchKeyEvent(eventType, keyCodeArg ) {
+            var keyboardEvent = document.createEvent("KeyboardEvent");
+            var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
+            keyboardEvent[initMethod](
+                eventType, // event type : keydown, keyup, keypress
+                true, // bubbles
+                true, // cancelable
+                window, // viewArg: should be window
+                false, // ctrlKeyArg
+                false, // altKeyArg
+                false, // shiftKeyArg
+                false, // metaKeyArg
+                keyCodeArg, // keyCodeArg : unsigned long the virtual key code, else 0
+                0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
+            );
+            document.dispatchEvent(keyboardEvent);
+        }
+
+
+        /*
+        function spacebar() {
+            var keyboardEvent = document.createEvent("KeyboardEvent");
+            var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
+            keyboardEvent[initMethod](
+                "keydown", // event type : keydown, keyup, keypress
+                true, // bubbles
+                true, // cancelable
+                window, // viewArg: should be window
+                false, // ctrlKeyArg
+                false, // altKeyArg
+                false, // shiftKeyArg
+                false, // metaKeyArg
+                32, // keyCodeArg : unsigned long the virtual key code, else 0
+                0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
+            );
+            document.dispatchEvent(keyboardEvent);
+        }
+
+        function spacebarUp() {
+            var keyboardEvent = document.createEvent("KeyboardEvent");
+            var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
+            keyboardEvent[initMethod](
+                "keyup", // event type : keydown, keyup, keypress
+                true, // bubbles
+                true, // cancelable
+                window, // viewArg: should be window
+                false, // ctrlKeyArg
+                false, // altKeyArg
+                false, // shiftKeyArg
+                false, // metaKeyArg
+                32, // keyCodeArg : unsigned long the virtual key code, else 0
+                0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
+            );
+            document.dispatchEvent(keyboardEvent);
+        }
+
+        function left() {
+            var keyboardEvent = document.createEvent("KeyboardEvent");
+            var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
+            keyboardEvent[initMethod](
+                "keydown", // event type : keydown, keyup, keypress
+                true, // bubbles
+                true, // cancelable
+                window, // viewArg: should be window
+                false, // ctrlKeyArg
+                false, // altKeyArg
+                false, // shiftKeyArg
+                false, // metaKeyArg
+                37, // keyCodeArg : unsigned long the virtual key code, else 0
+                0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
+            );
+            document.dispatchEvent(keyboardEvent);
+        }
+
+        function leftUp() {
+            var keyboardEvent = document.createEvent("KeyboardEvent");
+            var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
+            keyboardEvent[initMethod](
+                "keyup", // event type : keydown, keyup, keypress
+                true, // bubbles
+                true, // cancelable
+                window, // viewArg: should be window
+                false, // ctrlKeyArg
+                false, // altKeyArg
+                false, // shiftKeyArg
+                false, // metaKeyArg
+                37, // keyCodeArg : unsigned long the virtual key code, else 0
+                0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
+            );
+            document.dispatchEvent(keyboardEvent);
+        }
+
+
+        function right() {
+            var keyboardEvent = document.createEvent("KeyboardEvent");
+            var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
+            keyboardEvent[initMethod](
+                "keydown", // event type : keydown, keyup, keypress
+                true, // bubbles
+                true, // cancelable
+                window, // viewArg: should be window
+                false, // ctrlKeyArg
+                false, // altKeyArg
+                false, // shiftKeyArg
+                false, // metaKeyArg
+                39, // keyCodeArg : unsigned long the virtual key code, else 0
+                0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
+            );
+            document.dispatchEvent(keyboardEvent);
+        }
+
+        function rightUp() {
+            var keyboardEvent = document.createEvent("KeyboardEvent");
+            var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
+            keyboardEvent[initMethod](
+                "keyup", // event type : keydown, keyup, keypress
+                true, // bubbles
+                true, // cancelable
+                window, // viewArg: should be window
+                false, // ctrlKeyArg
+                false, // altKeyArg
+                false, // shiftKeyArg
+                false, // metaKeyArg
+                39, // keyCodeArg : unsigned long the virtual key code, else 0
+                0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
+            );
+            document.dispatchEvent(keyboardEvent);
+        }
+        */
+    </script>
 </body>
+
 </html>
-
-
