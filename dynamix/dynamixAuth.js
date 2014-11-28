@@ -74,7 +74,7 @@ if (typeof DynamixAuth === "undefined") {
 						//Some exception occured, retry
 						if(numOfTries>0){
 							numOfTries--;
-							setTimeout(retrieveIp(),6000); 
+							setTimeout(retrieveIp(),10000); 
 						} else {
 								console.log("exiting retry loop");
 						}
