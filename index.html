@@ -156,6 +156,7 @@
                         case Dynamix.Enums.BOUND:
                             console.log("bind listener status >> " + status);
                             $("#dialog-div").dialog("close");
+                            $("#dynamize").attr("src","images/paired.png");
                             openDynamixSession();
                             break;
                         case Dynamix.Enums.BIND_ERROR:

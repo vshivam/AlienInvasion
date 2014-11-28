@@ -1,9 +1,10 @@
 if (typeof DynamixAuth === "undefined") {
 	var DynamixAuth = {
  		showQRCode : function (app_name, elemId, successCallback) {
+ 			$("#"+elemId+" div").empty();
 	 		console.log("New QR code auth request from : "+ app_name);
 	 		var Params = {};
-	 		Params.app_name = app_name;
+	 		Params.appName = app_name;
 			var token = Dynamix.generateGuid();
 			Dynamix.pairing_token = token;
 			Params.type ="pairing";
@@ -15,45 +16,74 @@ if (typeof DynamixAuth === "undefined") {
 			Params.hashCode = SHA512Hash.toString(CryptoJS.enc.Base64) ;
 			var paramsString = JSON.stringify(Params);
 			console.log("Generating QR Code for : "+paramsString);
-			qrcode = new QRCode(elemId);
+			$("#"+elemId).css('text-align','center');
+ 			$("#"+elemId).append("<br/> Use The Scan to Interact Feature in the Ambient Dynamix Android Application to connect.<br/><br/>");
+			qrcode = new QRCode(elemId, {
+					    width: 128,
+					    height: 128,
+					    colorDark : "#000000",
+					    colorLight : "#ffffff",
+					});
 			qrcode.makeCode(paramsString);
+ 			$("#"+elemId).append("<br/><br/><img id=loading src =images/loading.gif style=margin:auto;width:40px;height:40px;>");
+ 			$("#"+elemId+" > img").css('display', 'inline');
 			$("#"+elemId).dialog({
 				autoOpen:false,
 				resizable:false,
 				modal:true, 
-				title:"Scan !", 
+				title:"Authentication QR Code", 
 			 	show: {
 					effect: "blind",
-					duration: 1000
+					duration: 500
 				}, 
-				buttons : {
-					"OK" : function() {
-						console.log("Retrieving Phone's IP From Database");
-						//Send request to server for the ip.
-						var url = "http://pairing.ambientdynamix.org/pairing/retrieveip.php?uuid="+Params.uuid;
-						console.log(url);
-					 	var xmlhttp = new XMLHttpRequest();
-						xmlhttp.onreadystatechange=function(){
-							try {
-								if (xmlhttp.readyState==4 && xmlhttp.status==200){
-									//4: request finished and response is ready
-									//200: "OK"
-									var ip = convertToJsonObject(xmlhttp.response).ip;
-									Dynamix.base_url = "http://"+ip;
-									console.log("Dynamix.base_url >> "+Dynamix.base_url);
-									successCallback();
+				//position : { my: "right top", at: "right top", of: window }
+			});
+
+			
+			$("#"+elemId).dialog("open");
+			var numOfTries = 60;
+			var retrieveIp = function() {
+				//Send request to server for the ip.
+				//Append the datetime to prevent caching of result. 
+				var url = "http://pairing.ambientdynamix.org/pairing/retrieveip.php?timestamp="+Date.now()+"&uuid="+Params.uuid;
+				console.log(url);
+			 	var xmlhttp = new XMLHttpRequest();
+				xmlhttp.onreadystatechange=function(){
+					try {
+						if (xmlhttp.readyState==4 && xmlhttp.status==200){
+							//4: request finished and response is ready
+							//200: "OK"
+							var ip = convertToJsonObject(xmlhttp.response).ip;
+							console.log("Response> " + xmlhttp.response);
+							if(ip!==undefined){
+								Dynamix.base_url = "http://"+ip;
+								console.log("Dynamix.base_url >> "+Dynamix.base_url);
+								successCallback();
+							} else {
+								//Ip Not found, retry
+								if(numOfTries>0){
+									numOfTries--;
+									setTimeout(retrieveIp(),10000); 
+								} else {
+									console.log("exiting retry loop");
 								}
-							} catch(err){
-								console.log(err.message);
 							}
+						} 
+					} catch(err){
+						console.log("Exception >> " + err.message);
+						//Some exception occured, retry
+						if(numOfTries>0){
+							numOfTries--;
+							setTimeout(retrieveIp(),6000); 
+						} else {
+								console.log("exiting retry loop");
 						}
-						xmlhttp.open("GET",url,true);
-						xmlhttp.send();
 					}
 				}
-			});
-			$("#"+elemId).dialog("open");
+				xmlhttp.open("GET",url,true);
+				xmlhttp.send();
+			};
+			retrieveIp();
  		}
 	}
 }
-
