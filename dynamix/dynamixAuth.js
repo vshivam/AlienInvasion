@@ -1,7 +1,7 @@
 if (typeof DynamixAuth === "undefined") {
 	var DynamixAuth = {
  		showQRCode : function (app_name, elemId, successCallback) {
- 			$("#"+elemId+" div").empty();
+			$("#"+elemId).html("");
 	 		console.log("New QR code auth request from : "+ app_name);
 	 		var Params = {};
 	 		Params.appName = app_name;
@@ -66,6 +66,7 @@ if (typeof DynamixAuth === "undefined") {
 									setTimeout(retrieveIp(),10000); 
 								} else {
 									console.log("exiting retry loop");
+			 			 			$("#"+elemId).html("<br/> <br/> Could not retrieve Ip Address. Please try again.<br/> <br/>");
 								}
 							}
 						} 
@@ -77,7 +78,8 @@ if (typeof DynamixAuth === "undefined") {
 							setTimeout(retrieveIp(),10000); 
 						} else {
 								console.log("exiting retry loop");
-						}
+		 			 			$("#"+elemId).html("<br/> <br/> Could not retrieve Ip Address. Please try again.<br/> <br/>");
+			}
 					}
 				}
 				xmlhttp.open("GET",url,true);
