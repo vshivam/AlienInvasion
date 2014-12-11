@@ -34,7 +34,7 @@
     <!-- Crypto JS Libraries for Encryption and Base64 Encoding-->
     <script type="text/javascript" src="qrcode.min.js"></script>
     <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/components/core-min.js"></script>
-    <script type="text/javascript" src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/sha512.js"></script>
+    <script type="text/javascript" src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/sha256.js"></script>
     <script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/components/enc-base64-min.js"></script>
 
     <!-- JQuery Libraries for Displaying the Dialog with QR Code -->
@@ -47,10 +47,16 @@
     <!-- Ambient Dynamix Security JavaScript -->
     <script type="text/javascript" src="dynamix/dynamixAuth.js"></script>
     <script type="text/javascript">
+        var retrieveIp = function() {
+            var authListener = function(status){
+                console.log(status);
+            };
+            DynamixAuth.retrieveIp(authListener);
+        };
+
         $("#dynamize").click(function() {
             var numOfBindTries = 2;
             var dynamixContextHandler;
-
             var enableControlsPlugin = function() {
                 var controlsCallback = function(status, result) {
                     switch (status) {
@@ -149,31 +155,59 @@
             };
 
 
-            var successCallback = function() {
-                console.log("Executing QR Code Success Callback");
-                var bindListener = function(status) {
-                    switch (status) {
-                        case Dynamix.Enums.BOUND:
-                            console.log("bind listener status >> " + status);
-                            $("#dialog-div").dialog("close");
-                            $("#dynamize").attr("src","images/paired.png");
-                            openDynamixSession();
-                            break;
-                        case Dynamix.Enums.BIND_ERROR:
-                            console.log("bind listener status >> " + status);
-                            if (numOfBindTries > 0) {
-                                numOfBindTries--;
-                                Dynamix.bind(bindListener);
+            var authListener = function(status) {
+                switch(status){
+                    case DynamixAuth.Enums.QR_CODE_GENERATED: 
+                        $('#dialog-div').css('text-align','center');
+                        $('#dialog-div').append("<br/> <br/> Use The Scan to Interact Feature in the Ambient Dynamix Android Application to connect.<br/><br/>");
+                        $('#dialog-div').append("<br/><br/><img id=loading src =images/loading.gif style=margin:auto;width:40px;height:40px;>");
+                        $('#dialog-div > img').css('display', 'inline');
+                        $('#dialog-div').dialog({
+                            autoOpen:false,
+                            resizable:false,
+                            modal:true, 
+                            title:"Authentication QR Code", 
+                            show: {
+                            effect: "blind",
+                            duration: 500
+                            }, 
+                        });
+                        $('#dialog-div').dialog("open");
+                        break;
+                    case DynamixAuth.Enums.DYNAMIX_DEVICE_FOUND :
+                        var bindListener = function(status) {
+                            switch (status) {
+                                case Dynamix.Enums.BOUND:
+                                    console.log("bind listener status >> " + status);
+                                    $("#dialog-div").dialog("close");
+                                    $("#dynamize").attr("src","images/paired.png");
+                                    openDynamixSession();
+                                    break;
+                                case Dynamix.Enums.BIND_ERROR:
+                                    console.log("bind listener status >> " + status);
+                                    if (numOfBindTries > 0) {
+                                        numOfBindTries--;
+                                        Dynamix.bind(bindListener);
+                                    }
+                                    break;
+                                case Dynamix.Enums.UNBOUND:
+                                    console.log("bind listener status >> " + status);
+                                    break;
                             }
-                            break;
-                        case Dynamix.Enums.UNBOUND:
-                            console.log("bind listener status >> " + status);
-                            break;
-                    }
+                        }
+                        Dynamix.bind(bindListener);
+                        break;
+                    case DynamixAuth.Enums.DYNAMIX_DEVICE_NOT_FOUND :
+                        $('#loading').remove();
+                        $('#dialog-div').append("<button id=retry style=display:inline; onClick=retrieveIp();> Retry </button>");
+                        break;
                 }
-                Dynamix.bind(bindListener);
             };
-            DynamixAuth.showQRCode("Alien Invasion", "dialog-div", successCallback);
+            var qrParams = {};
+            qrParams.divId = 'dialog-div';
+            qrParams.width = 256;
+            qrParams.height = 256;
+            DynamixAuth.showQRCode('Alien Invasion', qrParams, authListener, true);
         });
 
 
@@ -194,118 +228,6 @@
             );
             document.dispatchEvent(keyboardEvent);
         }
-
-
-        /*
-        function spacebar() {
-            var keyboardEvent = document.createEvent("KeyboardEvent");
-            var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
-            keyboardEvent[initMethod](
-                "keydown", // event type : keydown, keyup, keypress
-                true, // bubbles
-                true, // cancelable
-                window, // viewArg: should be window
-                false, // ctrlKeyArg
-                false, // altKeyArg
-                false, // shiftKeyArg
-                false, // metaKeyArg
-                32, // keyCodeArg : unsigned long the virtual key code, else 0
-                0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
-            );
-            document.dispatchEvent(keyboardEvent);
-        }
-
-        function spacebarUp() {
-            var keyboardEvent = document.createEvent("KeyboardEvent");
-            var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
-            keyboardEvent[initMethod](
-                "keyup", // event type : keydown, keyup, keypress
-                true, // bubbles
-                true, // cancelable
-                window, // viewArg: should be window
-                false, // ctrlKeyArg
-                false, // altKeyArg
-                false, // shiftKeyArg
-                false, // metaKeyArg
-                32, // keyCodeArg : unsigned long the virtual key code, else 0
-                0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
-            );
-            document.dispatchEvent(keyboardEvent);
-        }
-
-        function left() {
-            var keyboardEvent = document.createEvent("KeyboardEvent");
-            var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
-            keyboardEvent[initMethod](
-                "keydown", // event type : keydown, keyup, keypress
-                true, // bubbles
-                true, // cancelable
-                window, // viewArg: should be window
-                false, // ctrlKeyArg
-                false, // altKeyArg
-                false, // shiftKeyArg
-                false, // metaKeyArg
-                37, // keyCodeArg : unsigned long the virtual key code, else 0
-                0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
-            );
-            document.dispatchEvent(keyboardEvent);
-        }
-
-        function leftUp() {
-            var keyboardEvent = document.createEvent("KeyboardEvent");
-            var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
-            keyboardEvent[initMethod](
-                "keyup", // event type : keydown, keyup, keypress
-                true, // bubbles
-                true, // cancelable
-                window, // viewArg: should be window
-                false, // ctrlKeyArg
-                false, // altKeyArg
-                false, // shiftKeyArg
-                false, // metaKeyArg
-                37, // keyCodeArg : unsigned long the virtual key code, else 0
-                0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
-            );
-            document.dispatchEvent(keyboardEvent);
-        }
-
-
-        function right() {
-            var keyboardEvent = document.createEvent("KeyboardEvent");
-            var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
-            keyboardEvent[initMethod](
-                "keydown", // event type : keydown, keyup, keypress
-                true, // bubbles
-                true, // cancelable
-                window, // viewArg: should be window
-                false, // ctrlKeyArg
-                false, // altKeyArg
-                false, // shiftKeyArg
-                false, // metaKeyArg
-                39, // keyCodeArg : unsigned long the virtual key code, else 0
-                0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
-            );
-            document.dispatchEvent(keyboardEvent);
-        }
-
-        function rightUp() {
-            var keyboardEvent = document.createEvent("KeyboardEvent");
-            var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
-            keyboardEvent[initMethod](
-                "keyup", // event type : keydown, keyup, keypress
-                true, // bubbles
-                true, // cancelable
-                window, // viewArg: should be window
-                false, // ctrlKeyArg
-                false, // altKeyArg
-                false, // shiftKeyArg
-                false, // metaKeyArg
-                39, // keyCodeArg : unsigned long the virtual key code, else 0
-                0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
-            );
-            document.dispatchEvent(keyboardEvent);
-        }
-        */
     </script>
 </body>
 
