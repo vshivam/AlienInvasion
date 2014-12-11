@@ -2,12 +2,47 @@ if (typeof DynamixAuth === "undefined") {
     var DynamixAuth = {
         uuid: null,
         authListener: null,
+
+        /** 
+		@readonly
+		@enum
+		@property {String} DynamixAuth.Enums.QR_CODE_GENERATED QR_CODE_GENERATED
+		@property {String} DynamixAuth.Enums.QR_CODE_GENERATED DYNAMIX_DEVICE_FOUND
+		@property {String} DynamixAuth.Enums.DYNAMIX_DEVICE_NOT_FOUND DYNAMIX_DEVICE_NOT_FOUND 
+		**/
+
         Enums: Object.freeze({
             QR_CODE_GENERATED: "QR_CODE_GENERATED",
             DYNAMIX_DEVICE_FOUND: "DYNAMIX_DEVICE_FOUND",
             DYNAMIX_DEVICE_NOT_FOUND: "DYNAMIX_DEVICE_NOT_FOUND"
         }),
 
+        /**
+		Generate a Dynamix authentication QR Code.  
+		@param {function} app_name The name of the Web Application. This will be displayed on the 
+		@param {Object} qrParams Parameters for the QR Code. 
+		@param {function} qrAuthListener The web client should provide a listener which would listen to changes in the authentication state. 
+		@param {Boolean} auto A Boolean flag which tells Dynamix to automatically start retrieving the Dynamix device's IP address.
+		@example
+        var authListener = function(status) {
+            switch(status){
+                case DynamixAuth.Enums.QR_CODE_GENERATED: 
+                	//QR Code successfully generated
+                    break;
+                case DynamixAuth.Enums.DYNAMIX_DEVICE_FOUND :
+                	//Dynamix device ip was successfully retrieved.
+                    break;
+                case DynamixAuth.Enums.DYNAMIX_DEVICE_NOT_FOUND :
+                	//Could not retrieve Dynamix device ip.
+                    break;
+            }
+        };    
+		var qrParams = {};
+        qrParams.divId = 'dialog-div';
+        qrParams.width = 256;
+        qrParams.height = 256;
+        DynamixAuth.showQRCode('Alien Invasion', qrParams, authListener, true);
+		*/
         showQRCode: function(app_name, qrParams, qrAuthListener, auto) {
             console.log("New QR code auth request from : " + app_name);
             if (qrParams.divId !== undefined) {
@@ -48,11 +83,33 @@ if (typeof DynamixAuth === "undefined") {
             }
         },
 
-
+        /**
+		Retrieve the IP Address of the Dynamix device. This method is automatically called by the showQRCode() method when the auto flag is set to true by the client. 
+		The web client can also make an explicit request to this function to retrieve the ip address of the pairing Dynamix device.
+		@param {function} qrAuthListener
+		@example
+        var authListener = function(status) {
+            switch(status){
+                case DynamixAuth.Enums.QR_CODE_GENERATED: 
+                	//QR Code successfully generated
+                    break;
+                case DynamixAuth.Enums.DYNAMIX_DEVICE_FOUND :
+                	//Dynamix device ip was successfully retrieved.
+                    break;
+                case DynamixAuth.Enums.DYNAMIX_DEVICE_NOT_FOUND :
+                	//Could not retrieve Dynamix device ip.
+                    break;
+            }
+        };    
+        DynamixAuth.retrieveIp(authListener);
+		*/
         retrieveIp: function(qrAuthListener){
-        	var numOfTries = 60;
+			if(DynamixAuth.uuid == undefined){
+				throw {name : 'Undefined uuid', message : 'Method is probably called before the QR Code is displayed'};
+				return;   	
+			}
+			var numOfTries = 60;
         	var retrieve = function() {
-	        	console.log('try number' + numOfTries);
 	            //Send request to server for the ip.
 	            //Append the datetime to prevent caching of result. 
 	            var url = "http://pairing.ambientdynamix.org/pairing/retrieveip.php?timestamp=" + Date.now() + "&uuid=" + DynamixAuth.uuid;

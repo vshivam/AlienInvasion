@@ -47,10 +47,89 @@
     <!-- Ambient Dynamix Security JavaScript -->
     <script type="text/javascript" src="dynamix/dynamixAuth.js"></script>
     <script type="text/javascript">
-        var retrieveIp = function() {
-            var authListener = function(status){
-                console.log(status);
+        var authListener = function(status) {
+            var openDynamixSession = function() {
+                var openSessionCallback = function(status) {
+                    console.log("OpenSessionCallback >> Fired");
+                    switch (status) {
+                        case Dynamix.Enums.SUCCESS:
+                            createContextHandler();
+                    }
+                };
+
+                /**
+                The session listener gets updates when
+                1. Session state changes
+                2. Plugins are enabled / disabled
+                **/
+                var sessionListener = function(status, result) {
+                    switch (status) {
+                        case Dynamix.Enums.SESSION_OPENED:
+                            console.log("session listener >>> " + status + " : " + result);
+                            createContextHandler();
+                            break;
+                        case Dynamix.Enums.SESSION_CLOSED:
+                            document.getElementById("dynamixConnected").checked = false;
+                            break;
+                    }
+                };
+                Dynamix.openDynamixSession({
+                    listener: sessionListener,
+                    callback: openSessionCallback
+                });
+                console.log("Dynamix.openDynamixSession();");
             };
+            
+            switch(status){
+                case DynamixAuth.Enums.QR_CODE_GENERATED: 
+                    $('#dialog-div').css('text-align','center');
+                    $('#dialog-div').append("<br/> <br/> Use The Scan to Interact Feature in the Ambient Dynamix Android Application to connect.<br/><br/>");
+                    $('#dialog-div').append("<br/><br/><img id=loading src =images/loading.gif style=margin:auto;width:40px;height:40px;>");
+                    $('#dialog-div > img').css('display', 'inline');
+                    $('#dialog-div').dialog({
+                        autoOpen:false,
+                        resizable:false,
+                        modal:true, 
+                        title:"Authentication QR Code", 
+                        show: {
+                        effect: "blind",
+                        duration: 500
+                        }, 
+                    });
+                    $('#dialog-div').dialog("open");
+                    break;
+                case DynamixAuth.Enums.DYNAMIX_DEVICE_FOUND :
+                    var bindListener = function(status) {
+                        switch (status) {
+                            case Dynamix.Enums.BOUND:
+                                console.log("bind listener status >> " + status);
+                                $("#dialog-div").dialog("close");
+                                $("#dynamize").attr("src","images/paired.png");
+                                openDynamixSession();
+                                break;
+                            case Dynamix.Enums.BIND_ERROR:
+                                console.log("bind listener status >> " + status);
+                                if (numOfBindTries > 0) {
+                                    numOfBindTries--;
+                                    Dynamix.bind(bindListener);
+                                }
+                                break;
+                            case Dynamix.Enums.UNBOUND:
+                                console.log("bind listener status >> " + status);
+                                break;
+                        }
+                    }
+                    Dynamix.bind(bindListener);
+                    break;
+                case DynamixAuth.Enums.DYNAMIX_DEVICE_NOT_FOUND :
+                    $('#loading').remove();
+                    $('#dialog-div').append("<button id=retry style=display:inline; onClick=retrieveIp();> Retry </button>");
+                    break;
+            }
+        };        
+
+
+        var retrieveIp = function() {
             DynamixAuth.retrieveIp(authListener);
         };
 
@@ -122,87 +201,6 @@
                 console.log("Dynamix.createContextHandler(createNewHandlerCallback)");
             };
 
-            var openDynamixSession = function() {
-                var openSessionCallback = function(status) {
-                    console.log("OpenSessionCallback >> Fired");
-                    switch (status) {
-                        case Dynamix.Enums.SUCCESS:
-                            createContextHandler();
-                    }
-                };
-
-                /**
-                The session listener gets updates when
-                1. Session state changes
-                2. Plugins are enabled / disabled
-                **/
-                var sessionListener = function(status, result) {
-                    switch (status) {
-                        case Dynamix.Enums.SESSION_OPENED:
-                            console.log("session listener >>> " + status + " : " + result);
-                            createContextHandler();
-                            break;
-                        case Dynamix.Enums.SESSION_CLOSED:
-                            document.getElementById("dynamixConnected").checked = false;
-                            break;
-                    }
-                };
-                Dynamix.openDynamixSession({
-                    listener: sessionListener,
-                    callback: openSessionCallback
-                });
-                console.log("Dynamix.openDynamixSession();");
-            };
-
-
-            var authListener = function(status) {
-                switch(status){
-                    case DynamixAuth.Enums.QR_CODE_GENERATED: 
-                        $('#dialog-div').css('text-align','center');
-                        $('#dialog-div').append("<br/> <br/> Use The Scan to Interact Feature in the Ambient Dynamix Android Application to connect.<br/><br/>");
-                        $('#dialog-div').append("<br/><br/><img id=loading src =images/loading.gif style=margin:auto;width:40px;height:40px;>");
-                        $('#dialog-div > img').css('display', 'inline');
-                        $('#dialog-div').dialog({
-                            autoOpen:false,
-                            resizable:false,
-                            modal:true, 
-                            title:"Authentication QR Code", 
-                            show: {
-                            effect: "blind",
-                            duration: 500
-                            }, 
-                        });
-                        $('#dialog-div').dialog("open");
-                        break;
-                    case DynamixAuth.Enums.DYNAMIX_DEVICE_FOUND :
-                        var bindListener = function(status) {
-                            switch (status) {
-                                case Dynamix.Enums.BOUND:
-                                    console.log("bind listener status >> " + status);
-                                    $("#dialog-div").dialog("close");
-                                    $("#dynamize").attr("src","images/paired.png");
-                                    openDynamixSession();
-                                    break;
-                                case Dynamix.Enums.BIND_ERROR:
-                                    console.log("bind listener status >> " + status);
-                                    if (numOfBindTries > 0) {
-                                        numOfBindTries--;
-                                        Dynamix.bind(bindListener);
-                                    }
-                                    break;
-                                case Dynamix.Enums.UNBOUND:
-                                    console.log("bind listener status >> " + status);
-                                    break;
-                            }
-                        }
-                        Dynamix.bind(bindListener);
-                        break;
-                    case DynamixAuth.Enums.DYNAMIX_DEVICE_NOT_FOUND :
-                        $('#loading').remove();
-                        $('#dialog-div').append("<button id=retry style=display:inline; onClick=retrieveIp();> Retry </button>");
-                        break;
-                }
-            };
             var qrParams = {};
             qrParams.divId = 'dialog-div';
             qrParams.width = 256;
