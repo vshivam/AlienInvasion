@@ -115,11 +115,11 @@
             commands = {};
             commands.REQUESTED_COMMANDS = ["SENSOR_KEYPRESS"];
             */
-            dynamixContextHandler.addContextSupport("org.ambientdynamix.contextplugins.ambientcontrol.controlmessage",
-                "org.ambientdynamix.contextplugins.gamepadfeature", {
-                    "callback": controlsCallback,
-                    "listener": controlsListener
-                });
+            dynamixContextHandler.addContextSupport("org.ambientdynamix.contextplugins.gamepadfeature",
+                "org.ambientdynamix.contextplugins.ambientcontrol.controlmessage", {
+                "callback": controlsCallback,
+                "listener": controlsListener
+            });
         };
 
         var openDynamixSession = function() {
