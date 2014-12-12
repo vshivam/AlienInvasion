@@ -11,19 +11,19 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <style type="text/css">
-      img#dynamize { 
-        cursor: pointer; 
-        cursor: hand; 
-        position: relative;
-        left: 320px;
-        top : -420px;
-      }
+        img#dynamize {
+            cursor: pointer;
+            cursor: hand;
+            position: relative;
+            left: 320px;
+            top: -420px;
+        }
     </style>
 </head>
 
 <body>
     <div id='container'>
-        <img id="dynamize" src="images/dynamix.png"/>
+        <img id="dynamize" src="images/dynamix.png" />
         <canvas id='game' width='320' height='480'></canvas>
     </div>
     <div id="dialog-div"> </div>
@@ -47,10 +47,97 @@
     <!-- Ambient Dynamix Security JavaScript -->
     <script type="text/javascript" src="dynamix/dynamixAuth.js"></script>
     <script type="text/javascript">
-        var authListener = function(status) {
-            var openDynamixSession = function() {
+        var dynamixContextHandler = null;
+        var dispatchKeyEvent = function(eventType, keyCodeArg) {
+            console.log(eventType + " : " + keyCodeArg);
+            var keyboardEvent = document.createEvent("KeyboardEvent");
+            var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
+            keyboardEvent[initMethod](
+                eventType, // event type : keydown, keyup, keypress
+                true, // bubbles
+                true, // cancelable
+                window, // viewArg: should be window
+                false, // ctrlKeyArg
+                false, // altKeyArg
+                false, // shiftKeyArg
+                false, // metaKeyArg
+                keyCodeArg, // keyCodeArg : unsigned long the virtual key code, else 0
+                0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
+            );
+            document.dispatchEvent(keyboardEvent);
+        }
+
+        var enableControlsPlugin = function() {
+            var controlsCallback = function(status, result) {
+                switch (status) {
+                    case Dynamix.Enums.SUCCESS:
+                        console.log("Context support successfully added");
+                        break;
+                    case Dynamix.Enums.FAILURE:
+                        console.log("Could not add context support :" + result);
+                        break;
+                    case Dynamix.Enums.INSTALL_PROGRESS:
+                        break;
+                    case Dynamix.Enums.WARNING:
+                        break;
+                }
+
+            };
+
+            var controlsListener = function(status, result) {
+                console.log(result.keyCode + " : " + result.keypressType);
+                switch (status) {
+                    case Dynamix.Enums.PLUGIN_RESULT:
+                        if (result.keyCode == "32") {
+                            if (result.keypressType == "KEY_DOWN") {
+                                dispatchKeyEvent("keydown", 32);
+                            } else if (result.keypressType == "KEY_UP") {
+                                dispatchKeyEvent("keyup", 32);
+                            }
+                        } else if (result.keyCode == "37") {
+                            if (result.keypressType == "KEY_DOWN") {
+                                dispatchKeyEvent("keydown", 37);
+                            } else if (result.keypressType == "KEY_UP") {
+                                dispatchKeyEvent("keydown", 37);
+                            }
+                        } else if (result.keyCode == "39") {
+                            if (result.keypressType == "KEY_DOWN") {
+                                dispatchKeyEvent("keydown", 39);
+                            } else if (result.keypressType == "KEY_UP") {
+                                dispatchKeyEvent("keydown", 39);
+                            }
+                        }
+                        break;
+                }
+            };
+
+            /*
+            commands = {};
+            commands.REQUESTED_COMMANDS = ["SENSOR_KEYPRESS"];
+            */
+            dynamixContextHandler.addContextSupport("org.ambientdynamix.contextplugins.ambientcontrol.controlmessage",
+                "org.ambientdynamix.contextplugins.gamepadfeature", {
+                    "callback": controlsCallback,
+                    "listener": controlsListener
+                });
+        };
+
+        var openDynamixSession = function() {
+                var createContextHandler = function() {
+                    var createNewHandlerCallback = function(status, handler) {
+                        switch (status) {
+                            case Dynamix.Enums.SUCCESS:
+                                dynamixContextHandler = handler;
+                                console.log("createNewHandlerCallback : " + dynamixContextHandler.id);
+                                enableControlsPlugin();
+                                break;
+                        }
+                    };
+                    Dynamix.createContextHandler(createNewHandlerCallback);
+                };
+
                 var openSessionCallback = function(status) {
-                    console.log("OpenSessionCallback >> Fired");
+                    console.log("OpenSessionCallback : " + status);
                     switch (status) {
                         case Dynamix.Enums.SUCCESS:
                             createContextHandler();
@@ -79,32 +166,33 @@
                 });
                 console.log("Dynamix.openDynamixSession();");
             };
-            
-            switch(status){
-                case DynamixAuth.Enums.QR_CODE_GENERATED: 
-                    $('#dialog-div').css('text-align','center');
+
+        var authListener = function(status) {
+            switch (status) {
+                case DynamixAuth.Enums.QR_CODE_GENERATED:
+                    $('#dialog-div').css('text-align', 'center');
                     $('#dialog-div').append("<br/> <br/> Use The Scan to Interact Feature in the Ambient Dynamix Android Application to connect.<br/><br/>");
                     $('#dialog-div').append("<br/><br/><img id=loading src =images/loading.gif style=margin:auto;width:40px;height:40px;>");
                     $('#dialog-div > img').css('display', 'inline');
                     $('#dialog-div').dialog({
-                        autoOpen:false,
-                        resizable:false,
-                        modal:true, 
-                        title:"Authentication QR Code", 
+                        autoOpen: false,
+                        resizable: false,
+                        modal: true,
+                        title: "Authentication QR Code",
                         show: {
-                        effect: "blind",
-                        duration: 500
-                        }, 
+                            effect: "blind",
+                            duration: 500
+                        },
                     });
                     $('#dialog-div').dialog("open");
                     break;
-                case DynamixAuth.Enums.DYNAMIX_DEVICE_FOUND :
+                case DynamixAuth.Enums.DYNAMIX_DEVICE_FOUND:
                     var bindListener = function(status) {
                         switch (status) {
                             case Dynamix.Enums.BOUND:
                                 console.log("bind listener status >> " + status);
                                 $("#dialog-div").dialog("close");
-                                $("#dynamize").attr("src","images/paired.png");
+                                $("#dynamize").attr("src", "images/paired.png");
                                 openDynamixSession();
                                 break;
                             case Dynamix.Enums.BIND_ERROR:
@@ -121,12 +209,12 @@
                     }
                     Dynamix.bind(bindListener);
                     break;
-                case DynamixAuth.Enums.DYNAMIX_DEVICE_NOT_FOUND :
+                case DynamixAuth.Enums.DYNAMIX_DEVICE_NOT_FOUND:
                     $('#loading').remove();
                     $('#dialog-div').append("<button id=retry style=display:inline; onClick=retrieveIp();> Retry </button>");
                     break;
             }
-        };        
+        };
 
 
         var retrieveIp = function() {
@@ -134,98 +222,14 @@
         };
 
         $("#dynamize").click(function() {
+            $('#dialog-div').empty();
             var numOfBindTries = 2;
-            var dynamixContextHandler;
-            var enableControlsPlugin = function() {
-                var controlsCallback = function(status, result) {
-                    switch (status) {
-                        case Dynamix.Enums.SUCCESS:
-                            break;
-                        case Dynamix.Enums.FAILURE:
-                            break;
-                        case Dynamix.Enums.INSTALL_PROGRESS:
-                            break;
-                        case Dynamix.Enums.WARNING:
-                            break;
-                    }
-
-                };
-                var controlsListener = function(status, result) {
-                    switch (status) {
-                        case Dynamix.Enums.PLUGIN_RESULT:
-                            if (result.keyCode == "32") {
-                                if (result.keypressType == "KEY_DOWN") {
-                                    dispatchKeyEvent("keydown", 32);
-                                } else if (result.keypressType == "KEY_UP") {
-                                    dispatchKeyEvent("keyup", 32);
-                                }
-                            } else if (result.keyCode == "37") {
-                                if (result.keypressType == "KEY_DOWN") {
-                                    dispatchKeyEvent("keydown", 37);
-                                } else if (result.keypressType == "KEY_UP") {
-                                    dispatchKeyEvent("keydown", 37);
-                                }
-                            } else if (result.keyCode == "39") {
-                                if (result.keypressType == "KEY_DOWN") {
-                                    dispatchKeyEvent("keydown", 39);
-                                } else if (result.keypressType == "KEY_UP") {
-                                    dispatchKeyEvent("keydown", 39);
-                                }
-                            }
-                            break;
-                    }
-                };
-
-                /*
-                commands = {};
-                commands.REQUESTED_COMMANDS = ["SENSOR_KEYPRESS"];
-                */
-                dynamixContextHandler.addContextSupport("org.ambientdynamix.contextplugins.ambientcontrol.controlmessage",
-                    "org.ambientdynamix.contextplugins.gamepadfeature", {
-                        "callback": controlsCallback,
-                        "listener": controlsListener
-                    });
-            };
-
-            var createContextHandler = function() {
-                var createNewHandlerCallback = function(status, handler) {
-                    switch (status) {
-                        case Dynamix.Enums.SUCCESS:
-                            dynamixContextHandler = handler;
-                            console.log("createNewHandlerCallback >> Fired " + dynamixContextHandler.id);
-                            enableControlsPlugin();
-                            break;
-                    }
-                };
-                Dynamix.createContextHandler(createNewHandlerCallback);
-                console.log("Dynamix.createContextHandler(createNewHandlerCallback)");
-            };
-
             var qrParams = {};
             qrParams.divId = 'dialog-div';
             qrParams.width = 256;
             qrParams.height = 256;
             DynamixAuth.showQRCode('Alien Invasion', qrParams, authListener, true);
         });
-
-
-        function dispatchKeyEvent(eventType, keyCodeArg ) {
-            var keyboardEvent = document.createEvent("KeyboardEvent");
-            var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
-            keyboardEvent[initMethod](
-                eventType, // event type : keydown, keyup, keypress
-                true, // bubbles
-                true, // cancelable
-                window, // viewArg: should be window
-                false, // ctrlKeyArg
-                false, // altKeyArg
-                false, // shiftKeyArg
-                false, // metaKeyArg
-                keyCodeArg, // keyCodeArg : unsigned long the virtual key code, else 0
-                0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
-            );
-            document.dispatchEvent(keyboardEvent);
-        }
     </script>
 </body>
 

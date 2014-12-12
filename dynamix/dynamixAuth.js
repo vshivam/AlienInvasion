@@ -2,6 +2,7 @@ if (typeof DynamixAuth === "undefined") {
     var DynamixAuth = {
         uuid: null,
         authListener: null,
+        base_url_ip : "http://pairing.ambientdynamix.org/pairing/retrieveip.php?timestamp=",
 
         /** 
 		@readonly
@@ -28,12 +29,15 @@ if (typeof DynamixAuth === "undefined") {
             switch(status){
                 case DynamixAuth.Enums.QR_CODE_GENERATED: 
                 	//QR Code successfully generated
+                    doSomething();
                     break;
                 case DynamixAuth.Enums.DYNAMIX_DEVICE_FOUND :
                 	//Dynamix device ip was successfully retrieved.
+                    doSomething();
                     break;
                 case DynamixAuth.Enums.DYNAMIX_DEVICE_NOT_FOUND :
                 	//Could not retrieve Dynamix device ip.
+                    doSomething();                    
                     break;
             }
         };    
@@ -45,6 +49,7 @@ if (typeof DynamixAuth === "undefined") {
 		*/
         showQRCode: function(app_name, qrParams, qrAuthListener, auto) {
             console.log("New QR code auth request from : " + app_name);
+
             if (qrParams.divId !== undefined) {
                 elemId = qrParams.divId;
             }
@@ -91,13 +96,16 @@ if (typeof DynamixAuth === "undefined") {
         var authListener = function(status) {
             switch(status){
                 case DynamixAuth.Enums.QR_CODE_GENERATED: 
-                	//QR Code successfully generated
+                    //QR Code successfully generated
+                    doSomething();
                     break;
                 case DynamixAuth.Enums.DYNAMIX_DEVICE_FOUND :
-                	//Dynamix device ip was successfully retrieved.
+                    //Dynamix device ip was successfully retrieved.
+                    doSomething();
                     break;
                 case DynamixAuth.Enums.DYNAMIX_DEVICE_NOT_FOUND :
-                	//Could not retrieve Dynamix device ip.
+                    //Could not retrieve Dynamix device ip.
+                    doSomething();                    
                     break;
             }
         };    
@@ -112,8 +120,7 @@ if (typeof DynamixAuth === "undefined") {
         	var retrieve = function() {
 	            //Send request to server for the ip.
 	            //Append the datetime to prevent caching of result. 
-	            var url = "http://pairing.ambientdynamix.org/pairing/retrieveip.php?timestamp=" + Date.now() + "&uuid=" + DynamixAuth.uuid;
-	            console.log(url);
+	            var url = DynamixAuth.base_url_ip + Date.now() + "&uuid=" + DynamixAuth.uuid;
 	            var xmlhttp = new XMLHttpRequest();
 	            xmlhttp.onreadystatechange = function() {
 	                try {
